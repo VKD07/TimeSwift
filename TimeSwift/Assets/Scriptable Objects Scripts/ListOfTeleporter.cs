@@ -30,13 +30,16 @@ public class ListOfTeleporter : ScriptableObject
     {
         foreach (GameObject teleporter in spawnedTeleporters)
         {
-            Destroy(teleporter);
+            DestroyImmediate(teleporter);
         }
         spawnedTeleporters.Clear();
     }
 
     private void OnDisable()
     {
-        RemoveAllTeleporters();
+        if (spawnedTeleporters != null && spawnedTeleporters.Count > 0)
+        {
+            RemoveAllTeleporters();
+        }
     }
 }

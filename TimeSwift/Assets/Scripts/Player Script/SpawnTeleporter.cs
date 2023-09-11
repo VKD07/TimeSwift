@@ -5,16 +5,28 @@ using UnityEngine;
 
 public class SpawnTeleporter : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] PlayerControls playerControls;
     [SerializeField] GameObject teleporterPrefab;
     [SerializeField] ListOfTeleporter activeTeleporters;
     [SerializeField] float maxTeleporters;
-    Transform playerCamera;
+    [SerializeField] Transform playerCamera;
+    [SerializeField] Animator anim;
     GameObject teleporter;
+
+    [Header("Spawn Settings")]
+    [SerializeField] float spawnDelay = 1f;
+
+    [Header("RayCast")]
+    [SerializeField] float raycastLength = Mathf.Infinity;
+    [SerializeField] Vector3 obj;
+    RaycastHit hit;
+    bool objectDetected;
+    
 
     private void Awake()
     {
-        playerCamera = Camera.main.transform;
+       // playerCamera = Camera.main.transform;
     }
     private void Update()
     {
@@ -24,12 +36,27 @@ public class SpawnTeleporter : MonoBehaviour
 
     private void ShootTeleporter()
     {
-        if (Input.GetKeyDown(playerControls.spawnTeleporterKey) && activeTeleporters.spawnedTeleporters.Count < 3)
+        Ray ray = new Ray(playerCamera.position, playerCamera.forward);
+
+        if(Physics.Raycast(ray, out hit, raycastLength))
         {
-            teleporter = Instantiate(teleporterPrefab, playerCamera.transform.position, Quaternion.LookRotation(playerCamera.forward, Vector3.up));
-            teleporter.transform.forward = playerCamera.forward;
-            activeTeleporters.AddTeleporter(teleporter);
+            objectDetected = true;
+            obj = hit.transform.position;
+            if (Input.GetKeyDown(playerControls.spawnTeleporterKey) && activeTeleporters.spawnedTeleporters.Count < 3)
+            {
+                anim.SetTrigger("Shoot");
+                StartCoroutine(Spawn());
+            }
         }
+        else { objectDetected = false; }
+    }
+    IEnumerator Spawn()
+    {
+        yield return new WaitForSeconds(spawnDelay);
+        teleporter = Instantiate(teleporterPrefab, playerCamera.transform.position, Quaternion.LookRotation(playerCamera.forward, Vector3.up));
+        Vector3 teleportDirection = (hit.point - playerCamera.transform.position).normalized;
+        teleporter.GetComponent<Teleporter>().SetTargetPos = teleportDirection;
+        activeTeleporters.AddTeleporter(teleporter);
     }
 
     void RemoveAllTeleporters()
@@ -38,5 +65,18 @@ public class SpawnTeleporter : MonoBehaviour
         {
             activeTeleporters.RemoveAllTeleporters();
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(objectDetected)
+        {
+            Gizmos.color = Color.green;
+        }
+        else
+        {
+            Gizmos.color = Color.red;
+        }
+        Gizmos.DrawLine(playerCamera.position, playerCamera.transform.forward * 100f);
     }
 }
